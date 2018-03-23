@@ -7,7 +7,7 @@ import os.path as path
 
 data_directory = path.join('..', 'Data')
 extention = '.xlsx'
-data_filename = 'Altmetrics' + extention
+data_filename = 'test' + extention
 
 from xlrd import open_workbook
 
@@ -44,64 +44,53 @@ def remove_exact_duplicates(dict_list, column):
 
     print(len(hash_set))
 
-def compress_by_title(dict_list):
+def clean_dictionary(dict_list, key_set):
     """
-    Cleans up data organization
+    Cleans up data according to the xlsx format
     For instance, the authors appear on separate rows in the excel file so they are initially added
     as separate objects. This corrects that.
     """
-
-    # Turn Authors, Institutional Affiliation, Department and Country into tuple
-    clean_dict_list = {}
+    author_keys = ['Authors', 'Institutional Affiliation', 'Department', 'Country']
+    clean_dict_list = []
     author_details = []
-    title = dict_list[0]['TITLE']
+    new_line = {}
     for line in dict_list:
-        for key in line:
-            print key
-        author = {'Authors': line['Authors'],
-        'Institutional Affiliation': line['Institutional Affiliation'],
-        'Department': line['Department'],
-        'Country': line['Country']
-        }
+        # Turns Authors, Institutional Affiliation, Department and Country into an object as part of a list
+        author = {}
+        for key in author_keys:
+            author[key] = line[key]
         
+        # New line containing the title 
         if line['TITLE'] != '':
-            title = line['TITLE'] 
-            print(author_details)
+            # Adds new line to the clean_dict after it's been initialized
+            if new_line:
+                clean_dict_list.append(new_line)
+            title = line['TITLE']
+            # Adds non-author keys           
+            for key in key_set:
+                if key not in author_keys:
+                    new_line[key] = line[key]
+
             # Initialize with first author
             author_details = [author]
         else:
+            # Append new author to the publications
             author_details.append(author)
+    return clean_dict_list
 
-# def read_csv():
-#     """
-#     Loads the csv data by row, assigning each row value to a column key
-#     :return:
-#     """
-#     directory = mechanical_turks_output_directory
-
-#     csv_list_of_dicts = []
-#     for filename in glob.glob(path.join(directory, '*.csv')):
-#         with open(filename, 'rb') as csv_file:
-#             reader = csv.reader(csv_file, delimiter=',')
-#             header = None
-#             for i, row_list in enumerate(reader):
-#                 if i == 0:
-#                     header = row_list
-#                 else:
-#                     result_obj = {}
-#                     for j, result in enumerate(row_list):
-#                         result_obj[header[j]] = row_list[j]
-#                     csv_list_of_dicts.append(result_obj)
-
-    # return csv_list_of_dicts
 
 if __name__ == '__main__':
 
     dict_list = read_xlsx()
+    
+    # Gets the set of all keys in the in the xlsx
     key_set = set()
     for key in dict_list[0]:
         key_set.add(key)
-    # dict_list = compare_value(dict_list, 'TITLE')
         
-    compress_by_title(dict_list)
+    # Cleans the dictionary by adding all others to the same line of the list and associating author data    
+    dict_list = clean_dictionary(dict_list, key_set)
     
+    # Check for exact title duplicates
+    remove_exact_duplicates(dict_list, 'TITLE')
+
