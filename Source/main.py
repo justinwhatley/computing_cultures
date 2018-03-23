@@ -44,6 +44,21 @@ def remove_exact_duplicates(dict_list, column):
 
     print(len(hash_set))
 
+def _clean_dictionary_helper(line, new_line, clean_dict_list, author_details, author_keys, key_set):
+    
+    # Adds new line to the clean_dict after it's been instantiated
+    if new_line:
+        clean_dict_list.append(new_line)
+    # Adds non-author keys           
+    for key in key_set:
+        if key not in author_keys:
+            new_line[key] = line[key]
+
+    # Initialize with first author
+    author_details = [author]
+
+    return new_line, clean_dict_list, author_details
+
 def clean_dictionary(dict_list, key_set):
     """
     Cleans up data according to the xlsx format
@@ -62,10 +77,11 @@ def clean_dictionary(dict_list, key_set):
         
         # New line containing the title 
         if line['TITLE'] != '':
-            # Adds new line to the clean_dict after it's been initialized
+            title = line['TITLE']
+            
+             # Adds new line to the clean_dict after it's been instantiated
             if new_line:
                 clean_dict_list.append(new_line)
-            title = line['TITLE']
             # Adds non-author keys           
             for key in key_set:
                 if key not in author_keys:
@@ -76,6 +92,10 @@ def clean_dictionary(dict_list, key_set):
         else:
             # Append new author to the publications
             author_details.append(author)
+    
+    # Handles last title
+    clean_dict_list.append(new_line)
+
     return clean_dict_list
 
 
@@ -88,9 +108,11 @@ if __name__ == '__main__':
     for key in dict_list[0]:
         key_set.add(key)
         
-    # Cleans the dictionary by adding all others to the same line of the list and associating author data    
+    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
+    print(len(dict_list))
     dict_list = clean_dictionary(dict_list, key_set)
-    
-    # Check for exact title duplicates
-    remove_exact_duplicates(dict_list, 'TITLE')
+    print(len(dict_list))
+
+    # # Check for exact title duplicates
+    # remove_exact_duplicates(dict_list, 'TITLE')
 
