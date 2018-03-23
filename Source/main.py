@@ -7,7 +7,7 @@ import os.path as path
 
 data_directory = path.join('..', 'Data')
 extention = '.xlsx'
-data_filename = 'test' + extention
+data_filename = 'Altmetrics' + extention
 
 from xlrd import open_workbook
 
@@ -28,36 +28,34 @@ def read_xlsx(index=0):
 
     return dict_list
 
-def remove_exact_duplicates(dict_list, column):
+def mark_exact_duplicates(dict_list, column):
     """
     Counts the number of titles that have already appeared in the title set
     """
     hash_set = set()
+    duplicate_dict = {}
+
     counter = 0 
     for i in range(len(dict_list)):
         temp_len = len(hash_set)
-        print(dict_list[i][column])
-        hash_set.add(dict_list[i][column])
+        value = dict_list[i][column]
+        hash_set.add(value)
+        # If the set size did not increase the value was a duplicate in the dict_list
         if len(hash_set) != temp_len +1:
-            counter += 1
-    print(counter)
+            if value not in duplicate_dict:
+                duplicate_dict[value] = 1
+            else:
+                duplicate_dict[value] += 1
+            counter += 1        
 
-    print(len(hash_set))
-
-def _clean_dictionary_helper(line, new_line, clean_dict_list, author_details, author_keys, key_set):
+    for i in range(len(dict_list)):
+        value = dict_list[i][column]
+        if value in duplicate_dict:
+            dict_list[i]['HasDuplicate'] = True
     
-    # Adds new line to the clean_dict after it's been instantiated
-    if new_line:
-        clean_dict_list.append(new_line)
-    # Adds non-author keys           
-    for key in key_set:
-        if key not in author_keys:
-            new_line[key] = line[key]
+    print('Exact_duplicates: ' + str(counter))
+    return dict_list
 
-    # Initialize with first author
-    author_details = [author]
-
-    return new_line, clean_dict_list, author_details
 
 def clean_dictionary(dict_list, key_set):
     """
@@ -82,10 +80,12 @@ def clean_dictionary(dict_list, key_set):
              # Adds new line to the clean_dict after it's been instantiated
             if new_line:
                 clean_dict_list.append(new_line)
+                new_line = {}
             # Adds non-author keys           
             for key in key_set:
                 if key not in author_keys:
                     new_line[key] = line[key]
+            new_line['HasDuplicate'] = False
 
             # Initialize with first author
             author_details = [author]
@@ -109,10 +109,14 @@ if __name__ == '__main__':
         key_set.add(key)
         
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
-    print(len(dict_list))
     dict_list = clean_dictionary(dict_list, key_set)
-    print(len(dict_list))
 
-    # # Check for exact title duplicates
-    # remove_exact_duplicates(dict_list, 'TITLE')
+    # Check for exact title duplicates
+    dict_list = mark_exact_duplicates(dict_list, 'TITLE')
 
+    counter = 0 
+    for item in dict_list:
+        if item['HasDuplicate']:
+            counter += 1
+
+    print(counter)
