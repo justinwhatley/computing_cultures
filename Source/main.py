@@ -83,10 +83,12 @@ if __name__ == '__main__':
     dict_list = clean_dictionary(dict_list, key_set)
 
     # Check for exact title duplicates
-    dict_list = compare.mark_exact_duplicates(dict_list, 'TITLE')
+    dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'TITLE')
 
     # Text comparison 
     dict_list = compare.mark_possible_duplicates(dict_list, 'TITLE')
+
+    print('Full matches: ' + str(exact_matches))
 
     # counter = 0 
     # for item in dict_list:

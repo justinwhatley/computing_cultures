@@ -47,8 +47,7 @@ def mark_exact_duplicates(dict_list, key):
         if value in duplicate_dict:
             dict_list[i]['HasDuplicate'] = True
     
-    print('Exact_duplicates: ' + str(counter))
-    return dict_list
+    return dict_list, counter
 
 # From https://bommaritollc.com/2014/06/30/advanced-approximate-sentence-matching-python/
 def get_token_set_match_ratio(tokens_a, tokens_b):
@@ -83,14 +82,19 @@ def mark_possible_duplicates(dict_list, key):
 
     # Indexes of tokens will match indexes in dict_list
     for i in range(number_of_titles):
-        # Try brute forces comparison of all items (O(n^2))
+        # Trying brute forces comparison of all items (O(n^2)/2), seems fast enough for this 
         for j in range(i+1, number_of_titles):
             score = get_token_set_match_ratio(token_list[i], token_list[j])
             if score >= score_threshold:
                 similarity_map[(i, j)] = score
 
-    print(similarity_map)    
-                
+    for k, val in sorted(similarity_map.iteritems()):
+        print(dict_list[k[0]][key]).encode('utf-8') 
+        print(dict_list[k[1]][key]).encode('utf-8') 
+        print('Similarity score: ' + str(val))  
+        print
+    
+    print('Partial matches (inludes full matches): ' + str(len(similarity_map)))
 
 
     # # The number of words
