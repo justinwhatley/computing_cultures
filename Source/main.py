@@ -2,7 +2,7 @@
 #!/usr/bin/env python
 
 import glob
-# import csv
+import text_comparison as compare
 import os.path as path
 
 data_directory = path.join('..', 'Data')
@@ -27,35 +27,6 @@ def read_xlsx(index=0):
         dict_list.append(d)
 
     return dict_list
-
-def mark_exact_duplicates(dict_list, column):
-    """
-    Counts the number of titles that have already appeared in the title set
-    """
-    hash_set = set()
-    duplicate_dict = {}
-
-    counter = 0 
-    for i in range(len(dict_list)):
-        temp_len = len(hash_set)
-        value = dict_list[i][column]
-        hash_set.add(value)
-        # If the set size did not increase the value was a duplicate in the dict_list
-        if len(hash_set) != temp_len +1:
-            if value not in duplicate_dict:
-                duplicate_dict[value] = 1
-            else:
-                duplicate_dict[value] += 1
-            counter += 1        
-
-    for i in range(len(dict_list)):
-        value = dict_list[i][column]
-        if value in duplicate_dict:
-            dict_list[i]['HasDuplicate'] = True
-    
-    print('Exact_duplicates: ' + str(counter))
-    return dict_list
-
 
 def clean_dictionary(dict_list, key_set):
     """
@@ -112,11 +83,14 @@ if __name__ == '__main__':
     dict_list = clean_dictionary(dict_list, key_set)
 
     # Check for exact title duplicates
-    dict_list = mark_exact_duplicates(dict_list, 'TITLE')
+    dict_list = compare.mark_exact_duplicates(dict_list, 'TITLE')
 
-    counter = 0 
-    for item in dict_list:
-        if item['HasDuplicate']:
-            counter += 1
+    # Text comparison 
+    dict_list = compare.mark_possible_duplicates(dict_list, 'TITLE')
 
-    print(counter)
+    # counter = 0 
+    # for item in dict_list:
+    #     if item['HasDuplicate']:
+    #         counter += 1
+
+    # print('Marked as duplicated: ' + counter)
