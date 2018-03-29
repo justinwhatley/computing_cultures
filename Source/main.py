@@ -94,18 +94,20 @@ def set_dictionary_keys():
     # return {key:None for key in key_list}
     return key_list
 
-def output_key_delta(key_list, dict_line):
+def get_key_delta(key_list, dict_line):
     # Puts all main keys in lower case for comparison
     key_list = [x.lower() for x in key_list]
 
+    main_keys_missing = []
     for key in key_list:
         if key not in dict_line:
-            print('Main key missing: ' + key)
+            main_keys_missing.append(key)
 
+    additional_keys = [] 
     for key in dict_line:
         if key not in key_list:
-            print('Additionary key set: ' + key)
-
+            additional_keys.append(key)
+    return (main_keys_missing, additional_keys)
 
 def map_key_to_standard(mapping_tup_list, key_list, dict_list):
     # Takes a list of tuples that map key names in input dataset to expected key names
@@ -129,7 +131,29 @@ def map_key_to_standard(mapping_tup_list, key_list, dict_list):
             del(dict_list[i][tup[1]])
 
     return dict_list
-        
+
+def add_missing_columns(key_list, dict_list, remove_empty_column = True):
+    """
+    Adds the missing the columns which are keys in the key_list not in the dict_list
+    """
+    main_keys_missing, additional_keys = get_key_delta(key_list, dict_list[0])
+    
+    # Adds keys that will be used as final columns
+    for line in dict_list:
+        line.update({key: None for key in key_list})
+ 
+    # Removes empty columns 
+    if remove_empty_column:
+        for line in dict_list:
+            del(line[''])
+
+    #TODO add remaining keys to 'other' category for now
+    # for key in additional_keys:
+
+
+
+
+
 
 if __name__ == '__main__':
     
@@ -160,10 +184,8 @@ if __name__ == '__main__':
 
     map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
 
-    output_key_delta(final_key_list, dict_list[0])
+    add_missing_columns(final_key_list, dict_list)
     exit(0)
-
-    
 
      # Loads main bibliometric data sheet
     data_filename = 'Bibliometrics' + extention
