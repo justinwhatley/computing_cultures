@@ -141,9 +141,14 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
 
     main_keys_missing, additional_keys = get_key_delta(key_list, dict_list[0])
     
+    # print('Before')
+    # for line in dict_list:
+    #     print(line)
+    #     break
+
     # Adds keys that will be used as final columns
     for line in dict_list:
-        line.update({key: None for key in key_list})
+        line.update({key: None for key in main_keys_missing})
  
    
     if remove_empty_column:
@@ -160,13 +165,21 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
     # Adds extra columns and data to the 'other' category
     for line in dict_list:
         # Init list for other
-        if line['other'] is None:
+        if line['other'] is None or line['other'] == '':
             line['other'] = []
+        # Handles cases where the 'other' category is already filled by a string
+        else:
+            line['other'] = [{'other': line['other']}]
+
         # Append to 'others' list and remove old column placement
         for key in additional_keys:
             line['other'].append({key: line[key]})
             del(line[key])
     
+    # print('After')
+    # for line in dict_list:
+    #     print(line)
+    #     exit(0)
     return dict_list
 
 

@@ -96,7 +96,7 @@ def mark_possible_duplicates(dict_list, key):
     
     print('Partial matches (inludes full matches): ' + str(len(similarity_map)))
 
-
+    return dict_list
     # # The number of words
     # word_distance_allowed = 3
 
