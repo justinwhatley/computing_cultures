@@ -136,27 +136,41 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
     """
     Adds the missing the columns which are keys in the key_list not in the dict_list
     """
+    # Puts all main keys in lower case for comparison
+    key_list = [x.lower() for x in key_list]
+
     main_keys_missing, additional_keys = get_key_delta(key_list, dict_list[0])
     
     # Adds keys that will be used as final columns
     for line in dict_list:
         line.update({key: None for key in key_list})
  
-    # Removes empty columns 
+   
     if remove_empty_column:
+        # Removes empty columns keys in existing dataset
         for line in dict_list:
             del(line[''])
+        # Removes empty columns from the 'additional_keys' variable
+        number_additional_keys = len(additional_keys)
+        for i in range(number_additional_keys):
+            checking_index = number_additional_keys-1-i
+            if not additional_keys[checking_index]:
+                del(additional_keys[checking_index])
 
-    #TODO add remaining keys to 'other' category for now
-    # for key in additional_keys:
-
-
-
-
+    # Adds extra columns and data to the 'other' category
+    for line in dict_list:
+        # Init list for other
+        if line['other'] is None:
+            line['other'] = []
+        # Append to 'others' list and remove old column placement
+        for key in additional_keys:
+            line['other'].append({key: line[key]})
+            del(line[key])
+    
+    return dict_list
 
 
 if __name__ == '__main__':
-    
     # Gets main list of dictionary keys
     final_key_list = set_dictionary_keys()
 
