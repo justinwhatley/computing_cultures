@@ -24,7 +24,7 @@ def read_xlsx(sheet_index, data_filename):
 
     return dict_list
 
-def clean_altmetric_dictionary(dict_list, key_set):
+def clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set):
     """
     Cleans up data according to the xlsx format
     For instance, the authors appear on separate rows in the excel file so they are initially added
@@ -53,7 +53,6 @@ def clean_altmetric_dictionary(dict_list, key_set):
             for key in key_set:
                 if key not in author_keys:
                     new_line[key] = line[key]
-            new_line['has duplicate'] = False
 
             # Initialize with first author
             author_details = [author]
@@ -64,6 +63,51 @@ def clean_altmetric_dictionary(dict_list, key_set):
     # Handles last title
     clean_dict_list.append(new_line)
 
+    return clean_dict_list
+
+def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
+    """
+    Cleans up data according to the xlsx format for ACM New excel format
+    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
+    """
+    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+    clean_dict_list = []
+    author_details = []
+    new_line = {}
+    for line in dict_list:        
+        # Handles line where the country search is given
+        type = line['type'].strip().split(' ')
+        if type[0] == 'search:':
+            del(type[0])
+            country = ' '.join(type)
+        # Failed search 
+        elif type[0] == '-':
+            continue
+        # Modifies new_line
+        else:
+            # Get authors:
+            authors = line['author'].split(' and ')
+            authors_details = []
+            for a in authors:
+                author = {'authors' : a.encode('utf-8').strip(),
+                          'institutional affiliation' : None,
+                          'department' : None,
+                          'country' : country
+                          }
+                authors_details.append(author)
+
+             # Adds non-author keys           
+            for key in key_set:
+                new_line[key] = line[key]
+
+            del(new_line['author'])
+            new_line['authors'] = authors_details
+            clean_dict_list.append(new_line)
+
+    for line in clean_dict_list:
+        print
+        print(line)
+    exit(0)
     return clean_dict_list
 
 def set_dictionary_keys():
@@ -182,23 +226,23 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
     #     exit(0)
     return dict_list
 
+def get_key_set(dict_list):
+    key_set = set()
+    for key in dict_list[0]:
+        key_set.add(key)
+    return key_set
 
-if __name__ == '__main__':
-    # Gets main list of dictionary keys
-    final_key_list = set_dictionary_keys()
-
+def load_main_altmetric():
     # Loads main altmetric data sheet
     extention = '.xlsx'
     data_filename = 'Altmetrics' + extention
     dict_list = read_xlsx(0, data_filename)
-    
-    # Gets the set of all keys in the in the xlsx
-    key_set = set()
-    for key in dict_list[0]:
-        key_set.add(key)
 
-    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
-    dict_list = clean_altmetric_dictionary(dict_list, key_set)
+    # Gets the set of all keys in the in the xlsx
+    key_set = get_key_set(dict_list)
+
+     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
+    dict_list = clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set)
 
     mapping_tup_list = [('journal', 'name of journal'), 
                             ('conference proceedings', 'conference paper'), 
@@ -209,14 +253,47 @@ if __name__ == '__main__':
     # TODO find out where to map panel discussion (other?)
     # TODO find out where to map report (other?)
 
-    map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    dict_list = add_missing_columns(final_key_list, dict_list)
+    return dict_list
 
-    add_missing_columns(final_key_list, dict_list)
-    exit(0)
-
-     # Loads main bibliometric data sheet
+def load_acm_new():
+    # Loads ACM_new data sheet
+    extention = '.xlsx'
     data_filename = 'Bibliometrics' + extention
-    dict_list = read_xlsx(0, data_filename)
+    dict_list = read_xlsx(2, data_filename)
+
+    # Gets the set of all keys in the in the xlsx
+    key_set = get_key_set(dict_list)
+
+    dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
+
+
+    
+
+def load_inspec():
+    pass 
+
+def load_ieee():
+    pass 
+
+if __name__ == '__main__':
+    # Gets main list of dictionary keys
+    final_key_list = set_dictionary_keys()
+
+    # ----------------------------------------------------------------------------------
+    # Loads altmetric data sheets
+    # dict_list = load_main_altmetric()
+    # ----------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------
+    # Loads bibliometric data sheets
+   
+    # Loads ACM new data sheet
+    dict_list = load_acm_new()
+
+
+
 
     # Check for exact title duplicates
     dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'title')
