@@ -1,4 +1,4 @@
-
+ 
 #!/usr/bin/env python
 
 import glob
@@ -7,6 +7,35 @@ import os.path as path
 
 from xlrd import open_workbook
 data_directory = path.join('..', 'Data')
+
+def set_dictionary_keys():
+    """
+    Initializes the desired outputs keys for the columns of the dictionary
+    """
+    key_list = ['Title', 
+                'Authors',
+                'Institution',
+                'Country',
+                'Journal',
+                'Conference proceedings',
+                'Book/chapter',
+                'Working paper',
+                'Thesis',
+                'Year',
+                'Keywords',
+                'Abstract',
+                'ACM',
+                'IEE',
+                'INSPEC',
+                'Academia.edu',
+                'Web of Science',
+                'Google Scholar',
+                'DOAJ',
+                'Other',
+                'Has Duplicate']
+    return key_list
+# Sets global final key list
+final_key_list = set_dictionary_keys()
 
 def read_xlsx(sheet_index, data_filename):
     global data_directory
@@ -104,39 +133,7 @@ def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
             new_line['authors'] = authors_details
             clean_dict_list.append(new_line)
 
-    for line in clean_dict_list:
-        print
-        print(line)
-    exit(0)
     return clean_dict_list
-
-def set_dictionary_keys():
-    """
-    Initializes the desired outputs keys for the columns of the dictionary
-    """
-    key_list = ['Title', 
-                'Authors',
-                'Institution',
-                'Country',
-                'Journal',
-                'Conference proceedings',
-                'Book/chapter',
-                'Working paper',
-                'Thesis',
-                'Year',
-                'Keywords',
-                'Abstract',
-                'ACM',
-                'IEE',
-                'INSPEC',
-                'Academia.edu',
-                'Web of Science',
-                'Google Scholar',
-                'DOAJ',
-                'Other',
-                'Has Duplicate']
-    # return {key:None for key in key_list}
-    return key_list
 
 def get_key_delta(key_list, dict_line):
     # Puts all main keys in lower case for comparison
@@ -146,11 +143,18 @@ def get_key_delta(key_list, dict_line):
     for key in key_list:
         if key not in dict_line:
             main_keys_missing.append(key)
+    print('Main keys missing are: ')
+    for key in main_keys_missing:
+        print(key)
 
     additional_keys = [] 
     for key in dict_line:
         if key not in key_list:
             additional_keys.append(key)
+    print('Extras keys not in main list')
+    for key in additional_keys:
+        print(key)
+
     return (main_keys_missing, additional_keys)
 
 def map_key_to_standard(mapping_tup_list, key_list, dict_list):
@@ -233,6 +237,9 @@ def get_key_set(dict_list):
     return key_set
 
 def load_main_altmetric():
+    # Gets main list of dictionary keys
+    global final_key_list 
+
     # Loads main altmetric data sheet
     extention = '.xlsx'
     data_filename = 'Altmetrics' + extention
@@ -257,7 +264,51 @@ def load_main_altmetric():
     dict_list = add_missing_columns(final_key_list, dict_list)
     return dict_list
 
+def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
+     """
+    Cleans up data according to the xlsx format for INSPEC_new excel format
+    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
+    """
+    #TODO implement
+    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+    clean_dict_list = []
+    author_details = []
+    new_line = {}
+    for line in dict_list:        
+        # Handles line where the country search is given
+        type = line['type'].strip().split(' ')
+        if type[0] == 'search:':
+            del(type[0])
+            country = ' '.join(type)
+        # Failed search 
+        elif type[0] == '-':
+            continue
+        # Modifies new_line
+        else:
+            # Get authors:
+            authors = line['author'].split(' and ')
+            authors_details = []
+            for a in authors:
+                author = {'authors' : a.encode('utf-8').strip(),
+                          'institutional affiliation' : None,
+                          'department' : None,
+                          'country' : country
+                          }
+                authors_details.append(author)
+
+             # Adds non-author keys           
+            for key in key_set:
+                new_line[key] = line[key]
+
+            del(new_line['author'])
+            new_line['authors'] = authors_details
+            clean_dict_list.append(new_line)
+
+
 def load_acm_new():
+    # Gets main list of dictionary keys
+    global final_key_list 
+
     # Loads ACM_new data sheet
     extention = '.xlsx'
     data_filename = 'Bibliometrics' + extention
@@ -268,18 +319,40 @@ def load_acm_new():
 
     dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
 
+    get_key_delta(final_key_list, dict_list[0])
 
-    
+    # mapping_tup_list = [('journal', 'name of journal'), 
+    #                         ('conference proceedings', 'conference paper'), 
+    #                         ('book/chapter', 'book'),
+    #                         ('year', 'vol/month/issue'), 
+    #                         ]
+    exit(0)
+    return dict_list
+
 
 def load_inspec():
-    pass 
+    # Gets main list of dictionary keys
+    global final_key_list 
+
+    # Loads ACM_new data sheet
+    extention = '.xlsx'
+    data_filename = 'Bibliometrics' + extention
+    dict_list = read_xlsx(8, data_filename)
+
+    # Gets the set of all keys in the in the xlsx
+    key_set = get_key_set(dict_list)
+
+    dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
+
+    get_key_delta(final_key_list, dict_list[0])
+    exit(0)
+    return dict_list 
 
 def load_ieee():
     pass 
 
 if __name__ == '__main__':
-    # Gets main list of dictionary keys
-    final_key_list = set_dictionary_keys()
+    
 
     # ----------------------------------------------------------------------------------
     # Loads altmetric data sheets
@@ -290,7 +363,8 @@ if __name__ == '__main__':
     # Loads bibliometric data sheets
    
     # Loads ACM new data sheet
-    dict_list = load_acm_new()
+    # dict_list = load_acm_new()
+    dict_list = load_inspec()
 
 
 
