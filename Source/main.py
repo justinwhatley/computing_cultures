@@ -265,18 +265,18 @@ def load_main_altmetric():
     return dict_list
 
 def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
-     """
+    """
     Cleans up data according to the xlsx format for INSPEC_new excel format
     Gets the country search, assigning these to individual authors that were previously separated by 'ands'
     """
-    #TODO implement
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
     clean_dict_list = []
     author_details = []
     new_line = {}
     for line in dict_list:        
         # Handles line where the country search is given
-        type = line['type'].strip().split(' ')
+        print(line)
+        type = line['Title'].strip().split(' ')
         if type[0] == 'search:':
             del(type[0])
             country = ' '.join(type)
@@ -337,12 +337,17 @@ def load_inspec():
     # Loads ACM_new data sheet
     extention = '.xlsx'
     data_filename = 'Bibliometrics' + extention
-    dict_list = read_xlsx(8, data_filename)
+    dict_list = read_xlsx(7, data_filename)
+    # for line in dict_list:
+    #     for key, val in line.iteritems():
+    #         print key
+    #     exit(0)
 
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
-    dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
+    dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set)
+   
 
     get_key_delta(final_key_list, dict_list[0])
     exit(0)
