@@ -264,46 +264,6 @@ def load_main_altmetric():
     dict_list = add_missing_columns(final_key_list, dict_list)
     return dict_list
 
-def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
-    """
-    Cleans up data according to the xlsx format for INSPEC_new excel format
-    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
-    """
-    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
-    clean_dict_list = []
-    author_details = []
-    new_line = {}
-    for line in dict_list:        
-        # Handles line where the country search is given
-        print(line)
-        type = line['Title'].strip().split(' ')
-        if type[0] == 'search:':
-            del(type[0])
-            country = ' '.join(type)
-        # Failed search 
-        elif type[0] == '-':
-            continue
-        # Modifies new_line
-        else:
-            # Get authors:
-            authors = line['author'].split(' and ')
-            authors_details = []
-            for a in authors:
-                author = {'authors' : a.encode('utf-8').strip(),
-                          'institutional affiliation' : None,
-                          'department' : None,
-                          'country' : country
-                          }
-                authors_details.append(author)
-
-             # Adds non-author keys           
-            for key in key_set:
-                new_line[key] = line[key]
-
-            del(new_line['author'])
-            new_line['authors'] = authors_details
-            clean_dict_list.append(new_line)
-
 
 def load_acm_new():
     # Gets main list of dictionary keys
@@ -329,6 +289,48 @@ def load_acm_new():
     exit(0)
     return dict_list
 
+def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
+    """
+    Cleans up data according to the xlsx format for INSPEC_new excel format
+    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
+    """
+    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+    clean_dict_list = []
+    author_details = []
+    new_line = {}
+    for line in dict_list:        
+        # Handles line where the country search is given
+        category = line['title'].strip().split(' ')
+        # This tells us the line is a search query
+        if category[0] == 'search:':
+            # del(category[0])
+            # Note: Country column was added to the excel sheet
+            country = line['country'].lower()
+        # Failed search 
+        elif category[0] == '-':
+            continue
+        # Modifies new_line
+        else:
+            # Get authors:
+            authors = line['author'].split(';')
+            authors_details = []
+            for a in authors:
+                author = {'authors' : a.encode('utf-8').strip(),
+                          'institutional affiliation' : None,
+                          'department' : None,
+                          'country' : country
+                          }
+                authors_details.append(author)
+
+             # Adds non-author keys           
+            for key in key_set:
+                new_line[key] = line[key]
+
+            del(new_line['author'])
+            new_line['authors'] = authors_details
+            clean_dict_list.append(new_line)
+    return clean_dict_list
+
 
 def load_inspec():
     # Gets main list of dictionary keys
@@ -348,7 +350,6 @@ def load_inspec():
 
     dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set)
    
-
     get_key_delta(final_key_list, dict_list[0])
     exit(0)
     return dict_list 
