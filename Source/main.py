@@ -313,15 +313,32 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_
         else:
             # Get authors:
             authors = line['author'].split(';')
+            print(authors)
             authors_details = []
-            for a in authors:
+            # Gets the institution information 
+            institution_list = line['author affiliation'].split('(')
+            del institution_list[0]
+
+            for i, a in enumerate(authors):
+                # Extracts the affiliation numbers associated with the author
+                author_affiliation_string = (a[a.find("(")+1:a.find(")")])
+                # Puts the string of numbers into a list of int values
+                author_affiliation = [int(s.strip()) for s in author_affiliation_string.split(',')]
+                # Remove numbers from author names
+                a = a.split('(')[0].strip()
+                # Maps institutional affilations for that author to a list
+                mapped_affilations = []
+                for value in author_affiliation:
+                    mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
+                    
                 author = {'authors' : a.encode('utf-8').strip(),
-                          'institutional affiliation' : None,
+                          'institutional affiliation' : mapped_affilations,
                           'department' : None,
                           'country' : country
                           }
+                print author
                 authors_details.append(author)
-
+            exit(0)
              # Adds non-author keys           
             for key in key_set:
                 new_line[key] = line[key]
