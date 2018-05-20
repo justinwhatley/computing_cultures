@@ -135,6 +135,119 @@ def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
 
     return clean_dict_list
 
+
+def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set):
+    """
+    Cleans up data according to the xlsx format IEEE Explore.
+    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
+    """
+    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+    clean_dict_list = []
+    author_details = []
+    new_line = {}
+    for line in dict_list:        
+        # Handles line where the country search is given
+        category = line['document title'].strip().split(' ')
+        # This tells us the line is a search query
+        if category[0] == 'search:':
+            # del(category[0])
+            # Note: Country column was added to the excel sheet
+            country = line['country'].lower()
+        # Failed search 
+        elif category[0] == '-':
+            continue
+        # Modifies new_line
+        else:
+            # Get authors:
+            authors = line['authors'].split(';')
+            authors_details = []
+            # Gets the institution information 
+            institution_list = line['author affiliations']
+
+            for i, a in enumerate(authors):
+                mapped_affilations = institution_list
+
+                author = {'authors' : a.encode('utf-8').strip(),
+                          'institutional affiliation' : mapped_affilations,
+                          'department' : None,
+                          'country' : country
+                          }
+                authors_details.append(author)
+             # Adds non-author keys           
+            for key in key_set:
+                new_line[key] = line[key]
+
+            del(new_line['authors'])
+            new_line['authors'] = authors_details
+            clean_dict_list.append(new_line)
+    return clean_dict_list
+
+def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
+    """
+    Cleans up data according to the xlsx format for INSPEC_new excel format.
+    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
+    """
+    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+    clean_dict_list = []
+    author_details = []
+    new_line = {}
+    for line in dict_list:        
+        # Handles line where the country search is given
+        category = line['title'].strip().split(' ')
+        # This tells us the line is a search query
+        if category[0] == 'search:':
+            # del(category[0])
+            # Note: Country column was added to the excel sheet
+            country = line['country'].lower()
+        # Failed search 
+        elif category[0] == '-':
+            continue
+        # Modifies new_line
+        else:
+            # Get authors:
+            authors = line['author'].split(';')
+            authors_details = []
+            # Gets the institution information 
+            institution_list = line['author affiliation'].split('(')
+            del institution_list[0]
+
+            for i, a in enumerate(authors):
+                # Extracts the affiliation numbers associated with the author
+                print(a)
+                author_affiliation_string = (a[a.find("(")+1:a.find(")")])
+                # Puts the string of numbers into a list of int values                
+                try: 
+                    author_affiliation = [int(s.strip()) for s in author_affiliation_string.split(',')]
+                except:
+                    # Author will not have numbered affiliations in certain cases
+                    pass
+                # Remove numbers from author names
+                a = a.split('(')[0].strip()
+                # Maps institutional affilations for that author to a list
+                mapped_affilations = []
+                try: 
+                    for value in author_affiliation:
+                        mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
+                except:
+                    # Case where parsing fails, simply add the author affilation without precise mapping
+                    mapped_affilations.append(line['author affiliation'])
+
+                author = {'authors' : a.encode('utf-8').strip(),
+                          'institutional affiliation' : mapped_affilations,
+                          'department' : None,
+                          'country' : country
+                          }
+                authors_details.append(author)
+             # Adds non-author keys           
+            for key in key_set:
+                new_line[key] = line[key]
+
+            del(new_line['author'])
+            new_line['authors'] = authors_details
+            clean_dict_list.append(new_line)
+    return clean_dict_list
+
+
 def get_key_delta(key_list, dict_line):
     # Puts all main keys in lower case for comparison
     key_list = [x.lower() for x in key_list]
@@ -143,6 +256,7 @@ def get_key_delta(key_list, dict_line):
     for key in key_list:
         if key not in dict_line:
             main_keys_missing.append(key)
+    
     print('Main keys missing are: ')
     for key in main_keys_missing:
         print(key)
@@ -151,7 +265,8 @@ def get_key_delta(key_list, dict_line):
     for key in dict_line:
         if key not in key_list:
             additional_keys.append(key)
-    print('Extras keys not in main list')
+    
+    print('\nExtra keys not in main list: ')
     for key in additional_keys:
         print(key)
 
@@ -287,7 +402,6 @@ def load_acm_new():
     #                         ('book/chapter', 'book'),
     #                         ('year', 'vol/month/issue'), 
     #                         ]
-    exit(0)
     return dict_list
 
 def load_ieee_explore():
@@ -304,116 +418,11 @@ def load_ieee_explore():
 
     dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set)
 
-    mapping_tup_list = [('title', 'document title')]
-    dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
-    # get_key_delta(final_key_list, dict_list[0])
+    # mapping_tup_list = [()]
+    # dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    get_key_delta(final_key_list, dict_list[0])
 
-    exit(0)
     return dict_list
-
-def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set):
-    """
-    Cleans up data according to the xlsx format IEEE Explore.
-    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
-    """
-    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
-    clean_dict_list = []
-    author_details = []
-    new_line = {}
-    for line in dict_list:        
-        # Handles line where the country search is given
-        category = line['document title'].strip().split(' ')
-        # This tells us the line is a search query
-        if category[0] == 'search:':
-            # del(category[0])
-            # Note: Country column was added to the excel sheet
-            country = line['country'].lower()
-        # Failed search 
-        elif category[0] == '-':
-            continue
-        # Modifies new_line
-        else:
-            # Get authors:
-            authors = line['authors'].split(';')
-            authors_details = []
-            # Gets the institution information 
-            institution_list = line['author affiliations']
-
-            for i, a in enumerate(authors):
-                mapped_affilations = institution_list
-
-                author = {'authors' : a.encode('utf-8').strip(),
-                          'institutional affiliation' : mapped_affilations,
-                          'department' : None,
-                          'country' : country
-                          }
-                authors_details.append(author)
-             # Adds non-author keys           
-            for key in key_set:
-                new_line[key] = line[key]
-
-            del(new_line['authors'])
-            new_line['authors'] = authors_details
-            clean_dict_list.append(new_line)
-    return clean_dict_list
-
-def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
-    """
-    Cleans up data according to the xlsx format for INSPEC_new excel format.
-    Gets the country search, assigning these to individual authors that were previously separated by 'ands'
-    """
-    author_keys = ['authors', 'institutional affiliation', 'department', 'country']
-    clean_dict_list = []
-    author_details = []
-    new_line = {}
-    for line in dict_list:        
-        # Handles line where the country search is given
-        category = line['title'].strip().split(' ')
-        # This tells us the line is a search query
-        if category[0] == 'search:':
-            # del(category[0])
-            # Note: Country column was added to the excel sheet
-            country = line['country'].lower()
-        # Failed search 
-        elif category[0] == '-':
-            continue
-        # Modifies new_line
-        else:
-            # Get authors:
-            authors = line['authors'].split(';')
-            authors_details = []
-            # Gets the institution information 
-            institution_list = line['author affiliation'].split('(')
-            del institution_list[0]
-
-            for i, a in enumerate(authors):
-                # Extracts the affiliation numbers associated with the author
-                author_affiliation_string = (a[a.find("(")+1:a.find(")")])
-                # Puts the string of numbers into a list of int values
-                author_affiliation = [int(s.strip()) for s in author_affiliation_string.split(',')]
-                # Remove numbers from author names
-                a = a.split('(')[0].strip()
-                # Maps institutional affilations for that author to a list
-                mapped_affilations = []
-                for value in author_affiliation:
-                    mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
-
-                author = {'authors' : a.encode('utf-8').strip(),
-                          'institutional affiliation' : mapped_affilations,
-                          'department' : None,
-                          'country' : country
-                          }
-                authors_details.append(author)
-             # Adds non-author keys           
-            for key in key_set:
-                print(key)
-                # new_line[key] = line[key]
-
-            del(new_line['author'])
-            new_line['authors'] = authors_details
-            clean_dict_list.append(new_line)
-    return clean_dict_list
-
 
 def load_inspec():
     # Gets main list of dictionary keys
@@ -434,7 +443,6 @@ def load_inspec():
     dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set)
    
     get_key_delta(final_key_list, dict_list[0])
-    exit(0)
     return dict_list 
 
 
@@ -450,12 +458,21 @@ if __name__ == '__main__':
     # Loads bibliometric data sheets
    
     # Loads ACM new data sheet
-    # dict_list = load_acm_new()
-    # dict_list = load_inspec()
+    print('********************************************')
+    print('Loading ACM new')
+    print('********************************************')
+    dict_list = load_acm_new()
+
+    print('********************************************')
+    print('Loading inspec')
+    print('********************************************')
+    dict_list = load_inspec()
+
+    print('********************************************') 
+    print('Loading IEEE explore')
+    print('********************************************')
     dict_list = load_ieee_explore()
-
-
-
+    exit(0)
 
     # Check for exact title duplicates
     dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'title')
