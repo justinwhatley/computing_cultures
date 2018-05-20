@@ -213,7 +213,6 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_
 
             for i, a in enumerate(authors):
                 # Extracts the affiliation numbers associated with the author
-                print(a)
                 author_affiliation_string = (a[a.find("(")+1:a.find(")")])
                 # Puts the string of numbers into a list of int values                
                 try: 
@@ -229,7 +228,7 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_
                     for value in author_affiliation:
                         mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
                 except:
-                    # Case where parsing fails, simply add the author affilation without precise mapping
+                    # Case where parsing fails because of special chars, simply adds the author affilation without precise mapping
                     mapped_affilations.append(line['author affiliation'])
 
                 author = {'authors' : a.encode('utf-8').strip(),
@@ -451,7 +450,10 @@ if __name__ == '__main__':
 
     # ----------------------------------------------------------------------------------
     # Loads altmetric data sheets
-    # dict_list = load_main_altmetric()
+    print('********************************************')
+    print('Loading main altmetric')
+    dict_list = load_main_altmetric()
+    print('********************************************')
     # ----------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------
