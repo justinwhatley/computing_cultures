@@ -38,6 +38,9 @@ def set_dictionary_keys():
 final_key_list = set_dictionary_keys()
 
 def read_xlsx(sheet_index, data_filename):
+    """
+    Loads from an excel format file
+    """
     global data_directory
     book = open_workbook(path.join(data_directory, data_filename))
     sheet = book.sheet_by_index(sheet_index)
@@ -287,11 +290,18 @@ def map_key_to_standard(mapping_tup_list, key_list, dict_list):
         exit(0)
 
     for tup in mapping_tup_list:
+        print(tup)
         for i in range(len(dict_list)):
             # Changes dict_list keys from tup[1] to tup[0]
-            dict_list[i][tup[0]] = dict_list[i][tup[1]]
-            # Removes input key from line
-            del(dict_list[i][tup[1]])
+            for key in dict_list[i].iterkeys():
+                print(key)
+            #TODO check output 
+            try:
+                dict_list[i][tup[0]] = dict_list[i][tup[1]]
+                # Removes input key from line
+                del(dict_list[i][tup[1]])
+            except:
+                pass
 
     return dict_list
 
@@ -317,7 +327,8 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
     if remove_empty_column:
         # Removes empty columns keys in existing dataset
         for line in dict_list:
-            del(line[''])
+            if '' in line.iterkeys():
+                del(line[''])       
         # Removes empty columns from the 'additional_keys' variable
         number_additional_keys = len(additional_keys)
         for i in range(number_additional_keys):
@@ -332,11 +343,15 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
             line['other'] = []
         # Handles cases where the 'other' category is already filled by a string
         else:
-            line['other'] = [{'other': line['other']}]
+            line['other'] = [('other', line['other'])]
 
         # Append to 'others' list and remove old column placement
+        print()
+        for key in line:
+            print(key)
+        
         for key in additional_keys:
-            line['other'].append({key: line[key]})
+            line['other'].append((key, line[key]))
             del(line[key])
     
     # print('After')
@@ -344,6 +359,21 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
     #     print(line)
     #     exit(0)
     return dict_list
+
+def remove_columns(key_list, dict_list):
+    for row in dict_list:
+        for key_to_remove in key_list:
+            del(row[key_to_remove])
+        break
+
+    # for row in dict_list:
+    #     print('row starting')
+    #     for key in row.iterkeys():
+    #         print(key)
+    #     print()
+
+    return dict_list
+
 
 def get_key_set(dict_list):
     key_set = set()
@@ -363,20 +393,22 @@ def load_main_altmetric():
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
-     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
+    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set)
 
+    # Removes specified columns that do not contain pertinent information 
+    columns_to_remove = ['panel discussion', 'report']
+    dict_list = remove_columns(columns_to_remove, dict_list)
+
+    # Maps keys to a standard form
     mapping_tup_list = [('journal', 'name of journal'), 
                             ('conference proceedings', 'conference paper'), 
                             ('book/chapter', 'book'),
                             ('year', 'vol/month/issue'), 
                             ]
-    # TODO find out whether to map vol/month/issue to year
-    # TODO find out where to map panel discussion (other?)
-    # TODO find out where to map report (other?)
-
     dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
     dict_list = add_missing_columns(final_key_list, dict_list)
+
     return dict_list
 
 
@@ -392,15 +424,23 @@ def load_acm_new():
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
+    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
 
-    get_key_delta(final_key_list, dict_list[0])
+    # Removes specified columns that do not contain pertinent information 
+    columns_to_remove = ['angola', 'article_no', 'month', 'edition', 'isbn', 'id', 'note', 'issue_no',
+                        'editor', 'publisher_loc', 'description', 'acronym', 'volume', 'conf_loc', 'advisor',
+                        'pages', 'publisher', 'num_pages']
+    dict_list = remove_columns(columns_to_remove, dict_list)
 
-    # mapping_tup_list = [('journal', 'name of journal'), 
-    #                         ('conference proceedings', 'conference paper'), 
-    #                         ('book/chapter', 'book'),
-    #                         ('year', 'vol/month/issue'), 
-    #                         ]
+    # Maps keys to a standard form
+    mapping_tup_list = [('book/chapter', 'booktitle'),
+                            ('year', 'issue_date')]
+    dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    dict_list = add_missing_columns(final_key_list, dict_list)
+
+    get_key_delta(final_key_list, dict_list[1])
+
     return dict_list
 
 def load_ieee_explore():
@@ -415,10 +455,25 @@ def load_ieee_explore():
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
+    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set)
 
-    # mapping_tup_list = [()]
-    # dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+     # Removes specified columns that do not contain pertinent information 
+    columns_to_remove = ['isbn', 'copyright year', 'start page', 'inspec non-controlled terms', 'reference count',
+                        'date added to xplore', 'meeting date', 'eisbn', 'article citation count', 'issue', 
+                        'patent citation count', 'mesh terms', 'volume', 'online date', 'inspec controlled terms',
+                        'publisher', 'end page', 'issn', 'document identifier']
+    dict_list = remove_columns(columns_to_remove, dict_list)
+
+    # Maps keys to a standard form
+    mapping_tup_list = [('title', 'document title'), 
+                            ('keywords', 'author keywords'), 
+                            ('conference proceedings', 'publication title'),
+                            ('year', 'issue date'), 
+                            ]
+    dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    dict_list = add_missing_columns(final_key_list, dict_list)
+
     get_key_delta(final_key_list, dict_list[0])
 
     return dict_list
@@ -436,11 +491,20 @@ def load_inspec():
     #         print key
     #     exit(0)
 
+
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
+    # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set)
-   
+
+    #TODO fix columns before removing
+
+    # Removes specified columns that do not contain pertinent information 
+    columns_to_remove = ['isbn', 'language', 'isbn13', 'database', 'data provider', 'volume and issue', 'copyright']
+    
+    dict_list = remove_columns(columns_to_remove, dict_list)
+
     get_key_delta(final_key_list, dict_list[0])
     return dict_list 
 
@@ -452,7 +516,7 @@ if __name__ == '__main__':
     # Loads altmetric data sheets
     print('********************************************')
     print('Loading main altmetric')
-    dict_list = load_main_altmetric()
+    # dict_list = load_main_altmetric()
     print('********************************************')
     # ----------------------------------------------------------------------------------
 
@@ -463,12 +527,12 @@ if __name__ == '__main__':
     print('********************************************')
     print('Loading ACM new')
     print('********************************************')
-    dict_list = load_acm_new()
+    # dict_list = load_acm_new()
 
     print('********************************************')
     print('Loading inspec')
     print('********************************************')
-    dict_list = load_inspec()
+    # dict_list = load_inspec()
 
     print('********************************************') 
     print('Loading IEEE explore')
