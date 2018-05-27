@@ -46,7 +46,7 @@ def read_xlsx(sheet_index, data_filename):
     sheet = book.sheet_by_index(sheet_index)
 
     # read header values into the list    
-    keys = [sheet.cell(0, col_index).value.strip().lower() for col_index in xrange(sheet.ncols)]
+    keys = [sheet.cell(0, col_index).value.strip().lower().encode('utf-8') for col_index in xrange(sheet.ncols)]
 
     dict_list = []
     for row_index in xrange(1, sheet.nrows):
@@ -185,12 +185,44 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list,
             clean_dict_list.append(new_line)
     return clean_dict_list
 
-def clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set):
+def clean_inspec_helper(dict_list):
+    """
+    Serves to extract the Publication Year and Issue Dates from the columns.
+    The original web scrapping did not account for different outputs columns 
+    were assigned the incorrect values in the excel sheet.
+
+    The logic here orders assumes that Publication year and Issue Dates will fit 
+    a general date format or simply show a string representing the year and will
+    appear one after the other in the original excel ordering of the keys
+
+    """
+    cleaner_dict_list = []
+    original_excel_ordering = ['country', 'title', 'author', 'author affiliation', 'source', 'isbn', 'isbn13', 'publication year'
+                                'volume and issue', 'pages', 'issue date', 'monograph title'
+                                'language', 'database', 'copyright'], 
+
+    correct_excel_columns = ['country', 'title', 'author', 'author affiliation']
+
+    for row in dict_list:
+        for key in original_excel_ordering:
+            # These particular value/key combinations were correctly mapped
+            if key in correct_excel_columns:
+                cleaner_dict_list[key] = row[key]
+            #TODO assign the key/value pairs that fit a date regex
+            
+
+    return cleaner_dict_list
+
+
+def clean_inspec_new(dict_list, key_set):
     """
     Cleans up data according to the xlsx format for INSPEC_new excel format.
     Gets the country search, assigning these to individual authors that were previously separated by 'ands'
     """
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
+
+    dict_list = clean_inspec_helper(dict_list)
+
     clean_dict_list = []
     author_details = []
     new_line = {}
@@ -337,22 +369,32 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
                 del(additional_keys[checking_index])
 
     # Adds extra columns and data to the 'other' category
-    for line in dict_list:
-        # Init list for other
-        if line['other'] is None or line['other'] == '':
-            line['other'] = []
-        # Handles cases where the 'other' category is already filled by a string
-        else:
-            line['other'] = [('other', line['other'])]
+    if additional_keys: 
+        for line in dict_list:
+            # Init list for other
+            if line['other'] is None or line['other'] == '':
+                line['other'] = []
+            # Handles cases where the 'other' category is already filled by a string
+            else:
+                line['other'] = [('other', line['other'])]
 
-        # Append to 'others' list and remove old column placement
-        print()
-        for key in line:
-            print(key)
-        
-        for key in additional_keys:
-            line['other'].append((key, line[key]))
-            del(line[key])
+            # Append to 'others' list and remove old column placement
+            # for key in additional_keys:
+            #     print(key)
+            
+            for key in additional_keys:
+                # print('*********')
+                # print('made it!!!')
+                # print('*********')
+                # for item in line.iterkeys():
+                #     print(item)
+                # TODO verify expected behavior - removal of a key seems to generalize to all lines
+                # but it does seem like it should work that way
+                try:
+                    line['other'].append((key, line[key]))
+                    del(line[key])
+                except:
+                    pass
     
     # print('After')
     # for line in dict_list:
@@ -496,7 +538,7 @@ def load_inspec():
     key_set = get_key_set(dict_list)
 
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
-    dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons(dict_list, key_set)
+    dict_list = clean_inspec_new(dict_list, key_set)
 
     #TODO fix columns before removing
 
@@ -534,9 +576,9 @@ if __name__ == '__main__':
     print('********************************************')
     # dict_list = load_inspec()
 
-    print('********************************************') 
-    print('Loading IEEE explore')
-    print('********************************************')
+    # print('********************************************') 
+    # print('Loading IEEE explore')
+    # print('********************************************')
     dict_list = load_ieee_explore()
     exit(0)
 
