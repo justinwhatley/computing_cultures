@@ -65,8 +65,9 @@ def clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set):
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
     clean_dict_list = []
     author_details = []
-    new_line = {}
+    
     for line in dict_list:
+        new_line = {}
         # Turns Authors, Institutional Affiliation, Department and Country into an object as part of a list
         author = {}
         for key in author_keys:
@@ -97,7 +98,7 @@ def clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set):
 
     return clean_dict_list
 
-def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
+def clean_acm_new(dict_list, key_set):
     """
     Cleans up data according to the xlsx format for ACM New excel format
     Gets the country search, assigning these to individual authors that were previously separated by 'ands'
@@ -105,8 +106,9 @@ def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
     clean_dict_list = []
     author_details = []
-    new_line = {}
-    for line in dict_list:        
+    
+    for line in dict_list:   
+        new_line = {}     
         # Handles line where the country search is given
         type = line['type'].strip().split(' ')
         if type[0] == 'search:':
@@ -139,7 +141,7 @@ def clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set):
     return clean_dict_list
 
 
-def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set):
+def clean_ieee(dict_list, key_set):
     """
     Cleans up data according to the xlsx format IEEE Explore.
     Gets the country search, assigning these to individual authors that were previously separated by 'ands'
@@ -147,8 +149,9 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list,
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
     clean_dict_list = []
     author_details = []
-    new_line = {}
-    for line in dict_list:        
+    
+    for line in dict_list:      
+        new_line = {}  
         # Handles line where the country search is given
         category = line['document title'].strip().split(' ')
         # This tells us the line is a search query
@@ -181,9 +184,61 @@ def clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list,
                 new_line[key] = line[key]
 
             del(new_line['authors'])
+            del(new_line['author affiliations'])
             new_line['authors'] = authors_details
             clean_dict_list.append(new_line)
     return clean_dict_list
+
+def correct_year_format(year_str):
+    # Checks whether the format is a valid year 
+    try: 
+        # Assumes year ranges will fall between 1900 and 2100
+        year = int(year_str)
+        if 1900 <= year <= 2100:
+            return True
+    except:
+        pass
+    return False
+
+def correct_proceedings_format(proceedings_str):
+    if not isinstance(proceedings_str, basestring):
+        return False
+
+    if len(proceedings_str) == 0:
+        return False
+
+    # Checks that it is not the volume
+    if proceedings_str.split()[0] == 'v':
+        return False
+
+    # Checks that it is not the page
+    if proceedings_str.split()[0] == 'p':
+        return False
+
+    # Check that it is not a copyright
+    split_str = proceedings_str.split()
+    if 'Copyright' in split_str:
+        return False
+
+    # Check that it is not a database name
+    if proceedings_str == 'Compendex' or proceedings_str == 'Inspec':
+        return False
+    
+    if proceedings_str == 'Engineering Village':
+        return False
+
+    # Check that the value is not a string
+    try: 
+        int(year_str)
+        return False
+    except:
+        pass
+
+    # Sanity check to ensure the string is long enough to be the conference title
+    if len(proceedings_str) >= 20:
+        return True
+
+    return False
 
 def clean_inspec_helper(dict_list):
     """
@@ -197,19 +252,48 @@ def clean_inspec_helper(dict_list):
 
     """
     cleaner_dict_list = []
-    original_excel_ordering = ['country', 'title', 'author', 'author affiliation', 'source', 'isbn', 'isbn13', 'publication year'
-                                'volume and issue', 'pages', 'issue date', 'monograph title'
-                                'language', 'database', 'copyright'], 
+    original_excel_ordering = ['country', 'title', 'author', 'author affiliation', 'source', 'isbn', 'isbn13', 'publication year',
+                                'volume and issue', 'pages', 'issue date', 'monograph title',
+                                'language', 'database', 'copyright']
 
-    correct_excel_columns = ['country', 'title', 'author', 'author affiliation']
+    correct_excel_columns = ['title', 'author', 'author affiliation', 'source']
 
-    for row in dict_list:
+    country = ''
+    for i, line in enumerate(dict_list):
+        new_line = {}
+        
+        # Handles line where the country search is given
+        category = line['title'].strip().split(' ')
+        # This tells us the line is a search query
+        if category[0] == 'search:':
+            # Note: Country column was added to the excel sheet
+            country = line['country'].lower()
+            # Skips the search line as this contains no other information
+            continue
+        # Failed search 
+        elif category[0] == '-':
+            continue
+        new_line['country'] = country
+        new_line['publication_year'] = ''
+        new_line['conference_proceedings'] = ''
+        publication_year = ''
+        conference_proceedings = ''
         for key in original_excel_ordering:
             # These particular value/key combinations were correctly mapped
             if key in correct_excel_columns:
-                cleaner_dict_list[key] = row[key]
-            #TODO assign the key/value pairs that fit a date regex
-            
+                new_line[key] = line[key]
+            elif key == 'country':
+                continue
+            else:
+                if not publication_year and correct_year_format(line[key]):
+                    #When the year the publication year is not available, issue date may be substituted
+                    publication_year = line[key]
+                    new_line[publication_year] = publication_year
+                if not conference_proceedings and correct_proceedings_format(line[key]):
+                    conference_proceedings = line[key]
+                    new_line[conference_proceedings] = conference_proceedings
+
+        cleaner_dict_list.append(new_line)       
 
     return cleaner_dict_list
 
@@ -221,64 +305,59 @@ def clean_inspec_new(dict_list, key_set):
     """
     author_keys = ['authors', 'institutional affiliation', 'department', 'country']
 
+    # Gets correct key/value pairs despite bad web scraping allignment 
     dict_list = clean_inspec_helper(dict_list)
 
     clean_dict_list = []
     author_details = []
-    new_line = {}
     for line in dict_list:        
-        # Handles line where the country search is given
-        category = line['title'].strip().split(' ')
-        # This tells us the line is a search query
-        if category[0] == 'search:':
-            # del(category[0])
-            # Note: Country column was added to the excel sheet
-            country = line['country'].lower()
-        # Failed search 
-        elif category[0] == '-':
-            continue
         # Modifies new_line
-        else:
-            # Get authors:
-            authors = line['author'].split(';')
-            authors_details = []
-            # Gets the institution information 
-            institution_list = line['author affiliation'].split('(')
-            del institution_list[0]
+        new_line = {}
+        # Get authors:
+        authors = line['author'].split(';')
+        authors_details = []
+        # Gets the institution information 
+        institution_list = line['author affiliation'].split('(')
+        del institution_list[0]
 
-            for i, a in enumerate(authors):
-                # Extracts the affiliation numbers associated with the author
-                author_affiliation_string = (a[a.find("(")+1:a.find(")")])
-                # Puts the string of numbers into a list of int values                
-                try: 
-                    author_affiliation = [int(s.strip()) for s in author_affiliation_string.split(',')]
-                except:
-                    # Author will not have numbered affiliations in certain cases
-                    pass
-                # Remove numbers from author names
-                a = a.split('(')[0].strip()
-                # Maps institutional affilations for that author to a list
-                mapped_affilations = []
-                try: 
-                    for value in author_affiliation:
-                        mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
-                except:
-                    # Case where parsing fails because of special chars, simply adds the author affilation without precise mapping
-                    mapped_affilations.append(line['author affiliation'])
+        for i, a in enumerate(authors):
+            # Extracts the affiliation numbers associated with the author
+            author_affiliation_string = (a[a.find("(")+1:a.find(")")])
+            # Puts the string of numbers into a list of int values                
+            try: 
+                author_affiliation = [int(s.strip()) for s in author_affiliation_string.split(',')]
+            except:
+                # Author will not have numbered affiliations in certain cases
+                pass
+            # Remove numbers from author names
+            a = a.split('(')[0].strip()
+            # Maps institutional affilations for that author to a list
+            mapped_affilations = []
+            try: 
+                for value in author_affiliation:
+                    mapped_affilations.append(institution_list[value-1].split(')')[1].strip())
+            except:
+                # Case where parsing fails because of special chars, simply adds the author affilation without precise mapping
+                mapped_affilations.append(line['author affiliation'])
 
-                author = {'authors' : a.encode('utf-8').strip(),
-                          'institutional affiliation' : mapped_affilations,
-                          'department' : None,
-                          'country' : country
-                          }
-                authors_details.append(author)
-             # Adds non-author keys           
-            for key in key_set:
+            author = {'authors' : a.encode('utf-8').strip(),
+                        'institutional affiliation' : mapped_affilations,
+                        'department' : None,
+                        'country' : line['country']
+                        }
+            authors_details.append(author)
+
+        # Adds non-author keys           
+        for key in key_set:
+            if key in line:
                 new_line[key] = line[key]
 
-            del(new_line['author'])
-            new_line['authors'] = authors_details
-            clean_dict_list.append(new_line)
+        del(new_line['author'])
+        del(new_line['country'])
+        del(new_line['author affiliation'])
+
+        new_line['authors'] = authors_details
+        clean_dict_list.append(new_line)
     return clean_dict_list
 
 
@@ -322,11 +401,11 @@ def map_key_to_standard(mapping_tup_list, key_list, dict_list):
         exit(0)
 
     for tup in mapping_tup_list:
-        print(tup)
+        # print(tup)
         for i in range(len(dict_list)):
             # Changes dict_list keys from tup[1] to tup[0]
-            for key in dict_list[i].iterkeys():
-                print(key)
+            # for key in dict_list[i].iterkeys():
+            #     print(key)
             #TODO check output 
             try:
                 dict_list[i][tup[0]] = dict_list[i][tup[1]]
@@ -346,15 +425,9 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
 
     main_keys_missing, additional_keys = get_key_delta(key_list, dict_list[0])
     
-    # print('Before')
-    # for line in dict_list:
-    #     print(line)
-    #     break
-
     # Adds keys that will be used as final columns
     for line in dict_list:
         line.update({key: None for key in main_keys_missing})
- 
    
     if remove_empty_column:
         # Removes empty columns keys in existing dataset
@@ -408,14 +481,7 @@ def remove_columns(key_list, dict_list):
             del(row[key_to_remove])
         break
 
-    # for row in dict_list:
-    #     print('row starting')
-    #     for key in row.iterkeys():
-    #         print(key)
-    #     print()
-
     return dict_list
-
 
 def get_key_set(dict_list):
     key_set = set()
@@ -467,12 +533,12 @@ def load_acm_new():
     key_set = get_key_set(dict_list)
 
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
-    dict_list = clean_bibliometric_dictionary_authors_single_line_ands(dict_list, key_set)
+    dict_list = clean_acm_new(dict_list, key_set)
 
     # Removes specified columns that do not contain pertinent information 
     columns_to_remove = ['angola', 'article_no', 'month', 'edition', 'isbn', 'id', 'note', 'issue_no',
                         'editor', 'publisher_loc', 'description', 'acronym', 'volume', 'conf_loc', 'advisor',
-                        'pages', 'publisher', 'num_pages']
+                        'pages', 'publisher', 'num_pages', 'issn']
     dict_list = remove_columns(columns_to_remove, dict_list)
 
     # Maps keys to a standard form
@@ -498,7 +564,7 @@ def load_ieee_explore():
     key_set = get_key_set(dict_list)
 
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
-    dict_list = clean_bibliometric_dictionary_authors_single_line_semicolons_ieee(dict_list, key_set)
+    dict_list = clean_ieee(dict_list, key_set)
 
      # Removes specified columns that do not contain pertinent information 
     columns_to_remove = ['isbn', 'copyright year', 'start page', 'inspec non-controlled terms', 'reference count',
@@ -516,8 +582,6 @@ def load_ieee_explore():
     dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
     dict_list = add_missing_columns(final_key_list, dict_list)
 
-    get_key_delta(final_key_list, dict_list[0])
-
     return dict_list
 
 def load_inspec():
@@ -528,11 +592,6 @@ def load_inspec():
     extention = '.xlsx'
     data_filename = 'Bibliometrics' + extention
     dict_list = read_xlsx(7, data_filename)
-    # for line in dict_list:
-    #     for key, val in line.iteritems():
-    #         print key
-    #     exit(0)
-
 
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
@@ -540,46 +599,50 @@ def load_inspec():
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_inspec_new(dict_list, key_set)
 
-    #TODO fix columns before removing
-
     # Removes specified columns that do not contain pertinent information 
-    columns_to_remove = ['isbn', 'language', 'isbn13', 'database', 'data provider', 'volume and issue', 'copyright']
-    
-    dict_list = remove_columns(columns_to_remove, dict_list)
+    # **Removal was done in the clean load helper with allignment**
+    # columns_to_remove = ['isbn', 'language', 'isbn13', 'database', 'data provider', 'volume and issue', 'copyright']
+    # dict_list = remove_columns(columns_to_remove, dict_list)
 
-    get_key_delta(final_key_list, dict_list[0])
+    # Maps keys to a standard form
+    mapping_tup_list = [('conference proceedings', 'source')]
+    dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
+    dict_list = add_missing_columns(final_key_list, dict_list)
+
     return dict_list 
 
 
 if __name__ == '__main__':
     
-
     # ----------------------------------------------------------------------------------
+    # DONE - TODO test output 
     # Loads altmetric data sheets
-    print('********************************************')
-    print('Loading main altmetric')
+    # print('********************************************')
+    # print('Loading main altmetric')
     # dict_list = load_main_altmetric()
-    print('********************************************')
+    # print('********************************************')
     # ----------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------
     # Loads bibliometric data sheets
    
     # Loads ACM new data sheet
-    print('********************************************')
-    print('Loading ACM new')
-    print('********************************************')
+    # DONE - TODO test output 
+    # print('********************************************')
+    # print('Loading ACM new')
+    # print('********************************************')
     # dict_list = load_acm_new()
 
     print('********************************************')
     print('Loading inspec')
     print('********************************************')
-    # dict_list = load_inspec()
+    dict_list = load_inspec()
 
+    # DONE - TODO test output 
     # print('********************************************') 
     # print('Loading IEEE explore')
     # print('********************************************')
-    dict_list = load_ieee_explore()
+    # dict_list = load_ieee_explore()
     exit(0)
 
     # Check for exact title duplicates
