@@ -49,6 +49,10 @@ def mark_exact_duplicates(dict_list, key):
     
     return dict_list, counter
 
+# TODO add list index of possible duplicates 
+
+# TODO make case insensitive
+
 # From https://bommaritollc.com/2014/06/30/advanced-approximate-sentence-matching-python/
 def get_token_set_match_ratio(tokens_a, tokens_b):
     """
@@ -56,6 +60,10 @@ def get_token_set_match_ratio(tokens_a, tokens_b):
     """
     # key_token = [token.lower().strip(string.punctuation) for token in  nltk.tokenize.word_tokenizer(dict_list[i][key]) \
     #             if token.lower().strip(string.punctuation) not in stopwords]
+    
+    # Case insensitive comparison
+    tokens_a = [token.lower() for token in tokens_a]
+    tokens_b = [token.lower() for token in tokens_b]
 
     # Calculate Jaccard similarity
     set_intesection = (set(tokens_a).intersection(tokens_b))
@@ -64,7 +72,7 @@ def get_token_set_match_ratio(tokens_a, tokens_b):
 
 def mark_possible_duplicates(dict_list, key):
     """
-
+    Marks the possible duplicates strings
     """
     number_of_titles = len(dict_list)
 
@@ -89,10 +97,11 @@ def mark_possible_duplicates(dict_list, key):
                 similarity_map[(i, j)] = score
 
     for k, val in sorted(similarity_map.iteritems()):
-        print(dict_list[k[0]][key]).encode('utf-8') 
-        print(dict_list[k[1]][key]).encode('utf-8') 
-        print('Similarity score: ' + str(val))  
-        print
+        if (val < 1.0):
+            print(dict_list[k[0]][key]).encode('utf-8') 
+            print(dict_list[k[1]][key]).encode('utf-8') 
+            print('Similarity score: ' + str(val))  
+            print
     
     print('Partial matches (inludes full matches): ' + str(len(similarity_map)))
 

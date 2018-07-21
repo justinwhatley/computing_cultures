@@ -478,7 +478,10 @@ def add_missing_columns(key_list, dict_list, remove_empty_column = True):
 def remove_columns(key_list, dict_list):
     for row in dict_list:
         for key_to_remove in key_list:
-            del(row[key_to_remove])
+            try:
+                del(row[key_to_remove])
+            except:
+                print(key_to_remove + ' not removed.')
         break
 
     return dict_list
@@ -617,10 +620,10 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------
     # DONE - TODO test output 
     # Loads altmetric data sheets
-    # print('********************************************')
-    # print('Loading main altmetric')
-    # dict_list = load_main_altmetric()
-    # print('********************************************')
+    print('********************************************')
+    print('Loading main altmetric')
+    altmetric_dict_list = load_main_altmetric()
+    print('********************************************')
     # ----------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------
@@ -628,27 +631,35 @@ if __name__ == '__main__':
    
     # Loads ACM new data sheet
     # DONE - TODO test output 
-    # print('********************************************')
-    # print('Loading ACM new')
-    # print('********************************************')
-    # dict_list = load_acm_new()
+    print('********************************************')
+    print('Loading ACM new')
+    print('********************************************')
+    acm_new_dict_list = load_acm_new()
 
     print('********************************************')
     print('Loading inspec')
     print('********************************************')
-    dict_list = load_inspec()
+    inspec_dict_list = load_inspec()
+    # for line in dict_list:
+    #     print(line)
 
     # DONE - TODO test output 
-    # print('********************************************') 
-    # print('Loading IEEE explore')
-    # print('********************************************')
-    # dict_list = load_ieee_explore()
-    exit(0)
+    print('********************************************') 
+    print('Loading IEEE explore')
+    print('********************************************')
+    ieee_dict_list = load_ieee_explore()
+
+    print('Appending dictionary lists')
+    dict_list = altmetric_dict_list + acm_new_dict_list + inspec_dict_list + ieee_dict_list
+    print('Complete')
 
     # Check for exact title duplicates
+    print('Searching for exact matches in the list')
     dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'title')
+    print('Complete')
 
     # Text comparison 
+    print('Marking possible duplicates: ')
     dict_list = compare.mark_possible_duplicates(dict_list, 'title')
 
     print('Full matches: ' + str(exact_matches))
