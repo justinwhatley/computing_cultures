@@ -699,4 +699,10 @@ if __name__ == '__main__':
     print('Marking possible duplicates: ')
     dict_list = compare.mark_possible_duplicates(dict_list, 'title')
 
-    # print('Full matches: ' + str(exact_matches))
+    import csv
+    keys = dict_list[0].keys()
+    with open('test.csv', 'wb') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys)
+        dict_writer.writeheader()
+        dict_writer.writerows(dict_list)
+

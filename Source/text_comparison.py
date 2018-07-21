@@ -71,7 +71,7 @@ def get_token_set_match_ratio(tokens_a, tokens_b):
     return len(set_intesection) / float(len(set_union))
 
 
-def marks_database_for_full_match(k, dict_list):
+def mark_database_for_full_match(k, dict_list):
     """
     Marks all databases containing a particular title
     """
@@ -93,13 +93,39 @@ def remove_match(similarity_map, dict_list):
     # for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[1], reverse=True):
     for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[0][1], reverse=True):
         if val >= .9:
-            print(k, val)
-            print(dict_list[k[0]]['title']).encode('utf-8') 
-            print(dict_list[k[1]]['title']).encode('utf-8') 
             del dict_list[k[1]]
+            # print(k, val)
+            # print(dict_list[k[0]]['title']).encode('utf-8') 
+            # print(dict_list[k[1]]['title']).encode('utf-8') 
 
     print('initial_length: ' + str(initial_length))
     print('new_length: ' + str(len(dict_list)))
+
+def add_match_clusters(similarity_map, dict_list):
+    """
+    Sets a cluster number for matches that are not perfect
+    """
+    cluster_number = 1
+
+    cluster_key = 'possible match id'
+    for k, val in sorted(similarity_map.iteritems()):
+        temp_cluster_number = ''
+        # If either line has a specified cluster, add that cluster number to both
+        first_line = dict_list[k[0]][cluster_key]
+        second_line = dict_list[k[1]][cluster_key]
+        if first_line:
+            temp_cluster_number = int(first_line)
+        elif second_line:
+            temp_cluster_number = int(second_line)
+        
+        # Assigns the cluster number to both of the lines
+        if temp_cluster_number:
+            dict_list[k[0]][cluster_key] = temp_cluster_number
+            dict_list[k[1]][cluster_key] = temp_cluster_number
+        else:
+            dict_list[k[0]][cluster_key] = cluster_number
+            dict_list[k[1]][cluster_key] = cluster_number
+            cluster_number += 1
 
 def mark_possible_duplicates(dict_list, key):
     """
@@ -117,7 +143,7 @@ def mark_possible_duplicates(dict_list, key):
 
     # Dict of objects with the structure {(i:j) : score}
     similarity_map = {}
-    score_threshold = 0.4
+    score_threshold = 0.5
 
     # Indexes of tokens will match indexes in dict_list
     for i in range(number_of_titles):
@@ -127,6 +153,8 @@ def mark_possible_duplicates(dict_list, key):
             if score >= score_threshold:
                 similarity_map[(i, j)] = score
 
+    partial_matches = 0 
+    full_matches = 0 
     for k, val in sorted(similarity_map.iteritems()):
         # print(k)
         # print(val)
@@ -134,13 +162,16 @@ def mark_possible_duplicates(dict_list, key):
             print(dict_list[k[0]][key]).encode('utf-8') 
             print(dict_list[k[1]][key]).encode('utf-8') 
             print('Similarity score: ' + str(val))  
-            print
+            partial_matches +=1
         else:
-            marks_database_for_full_match(k, dict_list)
+            mark_database_for_full_match(k, dict_list)
+            full_matches += 1
     
+    add_match_clusters(similarity_map, dict_list)
     remove_match(similarity_map, dict_list)
 
-    print('Partial matches (inludes full matches): ' + str(len(similarity_map)))
+    print('Partial matches: ' + str(partial_matches))
+    print('Full matches: ' + str(full_matches))
 
     return dict_list
     
