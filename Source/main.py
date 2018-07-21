@@ -27,15 +27,39 @@ def set_dictionary_keys():
                 'ACM',
                 'IEEE',
                 'INSPEC',
+                'ALT'
                 'Academia.edu',
                 'Web of Science',
                 'Google Scholar',
                 'DOAJ',
                 'Other',
-                'Has Duplicate']
+                'Possible Match ID']
     return key_list
 # Sets global final key list
 final_key_list = set_dictionary_keys()
+
+def set_database(db_name, dict_list):
+    """
+    Sets the database key to each line in the dict_list
+    """
+    db_list = ['ACM', 'IEEE', 'INSPEC', 'ALT']
+    
+    # Sets to lowercase
+    db_name = db_name.lower()
+    db_list = [db.lower() for db in db_list]
+
+    # If the db_name is specified, sets the correct db to 1 and the other dbs in the db_list to 0
+    if db_name in db_list:
+        for db in db_list:
+            for line in dict_list:
+                if db != db_name:
+                    line[db] = 0
+                else: 
+                    line[db] = 1
+    else: 
+        print('The database ' + db_name + ' is not in the database list: ' + str(db_list))
+
+
 
 def read_xlsx(sheet_index, data_filename):
     """
@@ -55,6 +79,13 @@ def read_xlsx(sheet_index, data_filename):
         dict_list.append(d)
 
     return dict_list
+
+def capitalize_title(str):
+    """
+    Puts the title in a standard capitalized format
+    """
+    word_lst = str.split()
+    return ' '.join([word.capitalize() for word in word_lst])
 
 def clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set):
     """
@@ -227,12 +258,12 @@ def correct_proceedings_format(proceedings_str):
     if proceedings_str == 'Engineering Village':
         return False
 
-    # Check that the value is not a string
-    try: 
-        int(year_str)
-        return False
-    except:
-        pass
+    # # Check that the value is not a string
+    # try: 
+    #     int(year_str)
+    #     return False
+    # except:
+    #     pass
 
     # Sanity check to ensure the string is long enough to be the conference title
     if len(proceedings_str) >= 20:
@@ -618,55 +649,54 @@ def load_inspec():
 if __name__ == '__main__':
     
     # ----------------------------------------------------------------------------------
-    # DONE - TODO test output 
-    # Loads altmetric data sheets
-    print('********************************************')
-    print('Loading main altmetric')
-    altmetric_dict_list = load_main_altmetric()
-    print('********************************************')
-    # ----------------------------------------------------------------------------------
-
-    # ----------------------------------------------------------------------------------
     # Loads bibliometric data sheets
    
-    # Loads ACM new data sheet
-    # DONE - TODO test output 
-    print('********************************************')
-    print('Loading ACM new')
-    print('********************************************')
-    acm_new_dict_list = load_acm_new()
-
+    # Loads inspect data sheet
     print('********************************************')
     print('Loading inspec')
     print('********************************************')
     inspec_dict_list = load_inspec()
-    # for line in dict_list:
-    #     print(line)
+    set_database('inspec', inspec_dict_list)
 
-    # DONE - TODO test output 
+    # Loads IEEE data sheet
     print('********************************************') 
     print('Loading IEEE explore')
     print('********************************************')
     ieee_dict_list = load_ieee_explore()
+    set_database('ieee', ieee_dict_list)
+
+    # Loads ACM new data sheet
+    print('********************************************')
+    print('Loading ACM new')
+    print('********************************************')
+    acm_new_dict_list = load_acm_new()
+    set_database('acm', acm_new_dict_list)
+
+       # ----------------------------------------------------------------------------------
+    # Loads altmetric data sheets
+    print('********************************************')
+    print('Loading main altmetric')
+    print('********************************************')
+    altmetric_dict_list = load_main_altmetric()
+    set_database('alt', altmetric_dict_list)
+    # ----------------------------------------------------------------------------------
 
     print('Appending dictionary lists')
-    dict_list = altmetric_dict_list + acm_new_dict_list + inspec_dict_list + ieee_dict_list
+    dict_list =  inspec_dict_list + ieee_dict_list + acm_new_dict_list + altmetric_dict_list
+    # dict_list = acm_new_dict_list + ieee_dict_list 
     print('Complete')
 
+    # Puts titles in a standard format
+    for line in dict_list:
+        line['title'] = capitalize_title(line['title'])
+
     # Check for exact title duplicates
-    print('Searching for exact matches in the list')
-    dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'title')
-    print('Complete')
+    # print('Searching for exact matches in the list')
+    # dict_list, exact_matches = compare.mark_exact_duplicates(dict_list, 'title')
+    # print('Complete')
 
     # Text comparison 
     print('Marking possible duplicates: ')
     dict_list = compare.mark_possible_duplicates(dict_list, 'title')
 
-    print('Full matches: ' + str(exact_matches))
-
-    # counter = 0 
-    # for item in dict_list:
-    #     if item['has duplicate']:
-    #         counter += 1
-
-    # print('Marked as duplicated: ' + counter)
+    # print('Full matches: ' + str(exact_matches))

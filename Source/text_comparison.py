@@ -45,7 +45,7 @@ def mark_exact_duplicates(dict_list, key):
     for i in range(len(dict_list)):
         value = dict_list[i][key]
         if value in duplicate_dict:
-            dict_list[i]['HasDuplicate'] = True
+            dict_list[i][''] = True
     
     return dict_list, counter
 
@@ -61,14 +61,45 @@ def get_token_set_match_ratio(tokens_a, tokens_b):
     # key_token = [token.lower().strip(string.punctuation) for token in  nltk.tokenize.word_tokenizer(dict_list[i][key]) \
     #             if token.lower().strip(string.punctuation) not in stopwords]
     
-    # Case insensitive comparison
-    tokens_a = [token.lower() for token in tokens_a]
-    tokens_b = [token.lower() for token in tokens_b]
+    # Case insensitive comparison (should not be necessary with titles in standard capitalized format)
+    # tokens_a = [token.lower() for token in tokens_a]
+    # tokens_b = [token.lower() for token in tokens_b]
 
     # Calculate Jaccard similarity
     set_intesection = (set(tokens_a).intersection(tokens_b))
     set_union = (set(tokens_a).union(tokens_b))
     return len(set_intesection) / float(len(set_union))
+
+
+def marks_database_for_full_match(k, dict_list):
+    """
+    Marks all databases containing a particular title
+    """
+    db_list = ['ACM', 'IEEE', 'INSPEC', 'ALT']
+    db_list = [db.lower() for db in db_list]
+
+    # For all the databases set in a particular line, add them to the other and vice-versa
+    for db in db_list:
+        if dict_list[k[0]][db] == 1:
+            dict_list[k[1]][db] = 1
+        if dict_list[k[1]][db] == 1:
+            dict_list[k[0]][db] = 1
+
+def remove_match(similarity_map, dict_list):
+    """
+    Deletes exact duplicates starting from the largest
+    """
+    initial_length = (len(dict_list))
+    # for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[1], reverse=True):
+    for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[0][1], reverse=True):
+        if val >= .9:
+            print(k, val)
+            print(dict_list[k[0]]['title']).encode('utf-8') 
+            print(dict_list[k[1]]['title']).encode('utf-8') 
+            del dict_list[k[1]]
+
+    print('initial_length: ' + str(initial_length))
+    print('new_length: ' + str(len(dict_list)))
 
 def mark_possible_duplicates(dict_list, key):
     """
@@ -97,33 +128,20 @@ def mark_possible_duplicates(dict_list, key):
                 similarity_map[(i, j)] = score
 
     for k, val in sorted(similarity_map.iteritems()):
+        # print(k)
+        # print(val)
         if (val < 1.0):
             print(dict_list[k[0]][key]).encode('utf-8') 
             print(dict_list[k[1]][key]).encode('utf-8') 
             print('Similarity score: ' + str(val))  
             print
+        else:
+            marks_database_for_full_match(k, dict_list)
     
+    remove_match(similarity_map, dict_list)
+
     print('Partial matches (inludes full matches): ' + str(len(similarity_map)))
 
     return dict_list
-    # # The number of words
-    # word_distance_allowed = 3
+    
 
-    # for line in dict_list:
-
-
-# from nltk.corpus import stopwords
-
-
-
-
-
-# import gensim  
-
-# # Settings 
-# train_lbls=False
-
-# model = gensim.models.Doc2Vec.load('saved_doc2vec_model')  
-
-# new_sentence = "I opened a new mailbox"  
-# model.docvecs.most_similar(positive=[model.infer_vector(new_sentence)],topn=5)
