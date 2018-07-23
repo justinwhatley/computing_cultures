@@ -512,8 +512,8 @@ def remove_columns(key_list, dict_list):
             try:
                 del(row[key_to_remove])
             except:
-                print(key_to_remove + ' not removed.')
-        break
+                print(key_to_remove + ' not removed, no such column.')
+                break
 
     return dict_list
 
@@ -645,6 +645,37 @@ def load_inspec():
 
     return dict_list 
 
+def output_to_csv(dict_list):
+    
+
+    import os
+
+    filename = os.path.join(os.getcwd(), 'output.xls')
+    try: 
+        os.remove(filename)
+    except:
+        pass
+
+    import xlwt
+    workbook = xlwt.Workbook()
+    ws = workbook.add_sheet('test')
+
+    columns = list(dict_list[0].keys())
+
+    # write headers in row 0
+    for j, col in enumerate(columns):
+        ws.write(0, j, col)
+
+    for i, row in enumerate(dict_list, 1):
+        for j, col in enumerate(columns):
+            ws.write(i, j, row[col])
+
+    workbook.save(filename)
+
+# TODO sort by similarity cluster
+# TODO output author on individual line along with author data such as country
+# TODO may need unicode conversion for row objects
+    # self.writer.writerow([unicode(s).encode("utf-8") for s in row])
 
 if __name__ == '__main__':
     
@@ -657,6 +688,11 @@ if __name__ == '__main__':
     print('********************************************')
     inspec_dict_list = load_inspec()
     set_database('inspec', inspec_dict_list)
+    print(inspec_dict_list[0])
+    for key, value in inspec_dict_list[0].iteritems():
+        print(key, value)
+        print(type(value))
+    exit(0)
 
     # Loads IEEE data sheet
     print('********************************************') 
@@ -681,6 +717,8 @@ if __name__ == '__main__':
     set_database('alt', altmetric_dict_list)
     # ----------------------------------------------------------------------------------
 
+
+    # exit(0)
     print('Appending dictionary lists')
     dict_list =  inspec_dict_list + ieee_dict_list + acm_new_dict_list + altmetric_dict_list
     # dict_list = acm_new_dict_list + ieee_dict_list 
@@ -699,10 +737,4 @@ if __name__ == '__main__':
     print('Marking possible duplicates: ')
     dict_list = compare.mark_possible_duplicates(dict_list, 'title')
 
-    import csv
-    keys = dict_list[0].keys()
-    with open('test.csv', 'wb') as output_file:
-        dict_writer = csv.DictWriter(output_file, keys)
-        dict_writer.writeheader()
-        dict_writer.writerows(dict_list)
-
+    output_to_csv(dict_list)
