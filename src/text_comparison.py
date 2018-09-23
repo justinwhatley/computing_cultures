@@ -85,22 +85,6 @@ def mark_database_for_full_match(k, dict_list):
         if dict_list[k[1]][db] == 1:
             dict_list[k[0]][db] = 1
 
-def remove_match(similarity_map, dict_list):
-    """
-    Deletes exact duplicates starting from the largest
-    """
-    initial_length = (len(dict_list))
-    # for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[1], reverse=True):
-    for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[0][1], reverse=True):
-        if val >= .9:
-            del dict_list[k[1]]
-            # print(k, val)
-            # print(dict_list[k[0]]['title']).encode('utf-8') 
-            # print(dict_list[k[1]]['title']).encode('utf-8') 
-
-    print('initial_length: ' + str(initial_length))
-    print('new_length: ' + str(len(dict_list)))
-
 def add_match_clusters(similarity_map, dict_list):
     """
     Sets a cluster number for matches that are not perfect
@@ -108,6 +92,8 @@ def add_match_clusters(similarity_map, dict_list):
     cluster_number = 1
 
     cluster_key = 'possible match id'
+    # TODO figure out hot to avoid full-matches
+    
     for k, val in sorted(similarity_map.iteritems()):
         temp_cluster_number = ''
         # If either line has a specified cluster, add that cluster number to both
@@ -127,11 +113,50 @@ def add_match_clusters(similarity_map, dict_list):
             dict_list[k[1]][cluster_key] = cluster_number
             cluster_number += 1
 
+def remove_match(similarity_map, dict_list, threshold = .9):
+    """
+    Deletes duplicates meeting high similarity threshold starting from the largest
+    """
+    initial_length = (len(dict_list))
+    for k, val in sorted(similarity_map.iteritems(), key=lambda x: x[0][1], reverse=True):
+        if val >= threshold:
+            del dict_list[k[1]]
+            # print(k, val)
+            # print(dict_list[k[0]]['title']).encode('utf-8') 
+            # print(dict_list[k[1]]['title']).encode('utf-8') 
+
+    print('initial_length: ' + str(initial_length))
+    print('new_length: ' + str(len(dict_list)))
+            
+def remove_ids_for_corrected_clusters(dict_list):
+    """
+    Removes the id numbers associated with cluster items that no longer have any matches in the list
+    """
+    cluster_key = 'possible match id'
+
+    # Iterate through the list of dictionary items
+    for i, line in enumerate(dict_list):
+        cluster_id_1 = line[cluster_key]
+        if cluster_id_1:
+            actual_cluster = False
+            for j in range(len(dict_list)):
+                if j!=i:
+                    cluster_id_2 = dict_list[j][cluster_key]
+                    if cluster_id_1 == cluster_id_2:
+                        actual_cluster = True
+                        break
+            # If the cluster ID only appears once, remove the ID since it is no longer a cluster
+            if not actual_cluster:
+                # print('made it')
+                line[cluster_key] = None
+    
+            
 def mark_possible_duplicates(dict_list, key):
     """
     Marks the possible duplicates strings
     """
     number_of_titles = len(dict_list)
+    full_match_criteria = 0.9
 
     # Build a list of token sets for the strings in the key 
     token_list = []
@@ -158,17 +183,18 @@ def mark_possible_duplicates(dict_list, key):
     for k, val in sorted(similarity_map.iteritems()):
         # print(k)
         # print(val)
-        if (val < 1.0):
-            print(dict_list[k[0]][key]).encode('utf-8') 
-            print(dict_list[k[1]][key]).encode('utf-8') 
-            print('Similarity score: ' + str(val))  
+        if (val < full_match_criteria):
+            # print(dict_list[k[0]][key]).encode('utf-8') 
+            # print(dict_list[k[1]][key]).encode('utf-8') 
+            # print('Similarity score: ' + str(val))  
             partial_matches +=1
         else:
             mark_database_for_full_match(k, dict_list)
             full_matches += 1
     
     add_match_clusters(similarity_map, dict_list)
-    remove_match(similarity_map, dict_list)
+    remove_match(similarity_map, dict_list, threshold = full_match_criteria)
+    remove_ids_for_corrected_clusters(dict_list)
 
     print('Partial matches: ' + str(partial_matches))
     print('Full matches: ' + str(full_matches))
