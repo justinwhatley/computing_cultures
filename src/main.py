@@ -122,30 +122,36 @@ def clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set):
     
     for line in dict_list:
         new_line = {}
-        # Turns Authors, Institutional Affiliation, Department and Country into an object as part of a list
-        author = {}
-        for key in author_keys:
-            author[key] = line[key]
+        if line['title']:
+            new_line['title']=line['title']
+            clean_dict_list.append(new_line)
         
-        # New line containing the title 
-        if line['title'] != '':
-            title = line['title']
+#         # Turns Authors, Institutional Affiliation, Department and Country into an object as part of a list
+#         author = {}
+#         for key in author_keys:
+#             author[key] = line[key]
+        
+#         # New line containing the title 
+#         if line['title']:
+#             print(line['title'])
+#             title = line['title']
             
-             # Adds new line to the clean_dict after it's been instantiated
-            if new_line:
-                new_line['authors'] = author_details
-                clean_dict_list.append(new_line)
-                new_line = {}
-            # Adds non-author keys           
-            for key in key_set:
-                if key not in author_keys:
-                    new_line[key] = line[key]
-
-            # Initialize with first author
-            author_details = [author]
-        else:
-            # Append new author to the publications
-            author_details.append(author)
+#              # Adds new line to the clean_dict after it's been instantiated
+#             if new_line:
+#                 new_line['authors'] = author_details
+#                 clean_dict_list.append(new_line)
+#                 new_line = {}
+#             # Adds non-author keys           
+#             for key in key_set:
+#                 if key not in author_keys:
+#                     new_line[key] = line[key]
+                    
+#             # Initialize with first author
+#             author_details = [author]
+#         else:
+#             # Append new author to the publications
+#             author_details.append(author)            
+            
     
     # Handles last title
     clean_dict_list.append(new_line)
@@ -554,13 +560,13 @@ def load_main_altmetric(base_path):
     extention = '.xlsx'
     data_filename = path.join(base_path, 'Altmetrics' + extention)
     dict_list = read_xlsx(0, data_filename)
-
+    
     # Gets the set of all keys in the in the xlsx
     key_set = get_key_set(dict_list)
 
     # Cleans the dictionary by adding all authors to the same line of the list and associating author data    
     dict_list = clean_altmetric_dictionary_authors_diff_lines(dict_list, key_set)
-
+    
     # Removes specified columns that do not contain pertinent information 
     columns_to_remove = ['panel discussion', 'report']
     dict_list = remove_columns(columns_to_remove, dict_list)
@@ -573,6 +579,7 @@ def load_main_altmetric(base_path):
                             ]
     dict_list = map_key_to_standard(mapping_tup_list, final_key_list, dict_list)
     dict_list = add_missing_columns(final_key_list, dict_list)
+    print(dict_list)
 
     return dict_list
 
@@ -680,7 +687,7 @@ if __name__ == '__main__':
     # ----------------------------------------------------------------------------------
     # Loads bibliometric data sheets
    
-    # Loads inspect data sheet
+#     # Loads inspect data sheet
     print('********************************************')
     print('Loading inspec')
     print('********************************************')
@@ -701,18 +708,18 @@ if __name__ == '__main__':
     acm_new_dict_list = load_acm_new(base_path)
     set_database('acm', acm_new_dict_list)
 
-       # ----------------------------------------------------------------------------------
+#        # ----------------------------------------------------------------------------------
     # Loads altmetric data sheets
     print('********************************************')
     print('Loading main altmetric')
     print('********************************************')
     altmetric_dict_list = load_main_altmetric(base_path)
     set_database('alt', altmetric_dict_list)
-    # ----------------------------------------------------------------------------------
+#     # ----------------------------------------------------------------------------------
 
     print('Appending dictionary lists')
     dict_list =  inspec_dict_list + ieee_dict_list + acm_new_dict_list + altmetric_dict_list
-    # dict_list = acm_new_dict_list + ieee_dict_list 
+#     dict_list = altmetric_dict_list 
     print('Complete')
 
     # Puts titles in a standard format
